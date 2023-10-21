@@ -84,42 +84,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let mut uiw = suif::Window::new((100, 100), (250, 400), widget);
 	uiw.invalidate();
 
-	{
-		let mut render_context = contexts::Render {
-			window: &mut window,
-			rectangle: &mut rectangle,
-			default_text: &mut text,
-		};
+	let mut render_context = contexts::Render {
+		window: &mut window,
+		rectangle: &mut rectangle,
+		default_text: &mut text,
+	};
 
-		uiw.invalidate_font_metrics(&mut render_context.default_font());
-	}
+	let mut input_context = contexts::Input {
+		mouse_position: Default::default(),
+	};
+
+	uiw.invalidate_font_metrics(&mut render_context.default_font());
 
 	let mut fps = 0;
 	let mut fps_counter = 0;
 	let mut fps_timer = std::time::Instant::now();
 
-	let mut mouse_position = Default::default();
-
-	while window.is_open() {
-		while let Some(event) = window.poll_event() {
+	while render_context.window.is_open() {
+		while let Some(event) = render_context.window.poll_event() {
 			match event {
-				sfml::window::Event::Closed => window.close(),
+				sfml::window::Event::Closed => render_context.window.close(),
 				sfml::window::Event::MouseMoved { x, y } => {
-					mouse_position = (x as _, y as _);
+					input_context.mouse_position = (x as _, y as _);
 				}
 				_ => (),
 			}
 		}
 
-		window.clear(sfml::graphics::Color::rgba(111, 111, 111, 255));
-
-		let input_context = contexts::Input { mouse_position };
-
-		let mut render_context = contexts::Render {
-			window: &mut window,
-			rectangle: &mut rectangle,
-			default_text: &mut text,
-		};
+		render_context
+			.window
+			.clear(sfml::graphics::Color::rgba(111, 111, 111, 255));
 
 		fps_counter += 1;
 		let now = std::time::Instant::now();
@@ -163,7 +157,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 		uiw.update(&input_context);
 		uiw.paint(&mut render_context);
 
-		window.display();
+		render_context.window.display();
 	}
 
 	Ok(())

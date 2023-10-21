@@ -1,13 +1,10 @@
 use sfml::graphics::{RenderTarget, Shape, Transformable};
 
-struct SfmlFont<'a, 'b, 'c> {
-	ctx: *mut Render<'a, 'b, 'c>,
-	_phantom_a: std::marker::PhantomData<&'a ()>,
-	_phantom_b: std::marker::PhantomData<&'b ()>,
-	_phantom_c: std::marker::PhantomData<&'c ()>,
+struct SfmlFont<'a, 'b, 'c, 'd> {
+	ctx: &'a mut Render<'b, 'c, 'd>,
 }
 
-impl<'a, 'b, 'c> suif::Font for SfmlFont<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> suif::Font for SfmlFont<'a, 'b, 'c, 'd> {
 	fn paint<const N: usize>(
 		&mut self,
 		text: impl AsRef<str>,
@@ -27,26 +24,22 @@ impl<'a, 'b, 'c> suif::Font for SfmlFont<'a, 'b, 'c> {
 			}
 		}
 
-		unsafe {
-			(*self.ctx).default_text.set_string(text.as_ref());
+		self.ctx.default_text.set_string(text.as_ref());
 
-			(*self.ctx)
-				.default_text
-				.set_fill_color(sfml::graphics::Color::rgba(r, g, b, a));
+		self.ctx
+			.default_text
+			.set_fill_color(sfml::graphics::Color::rgba(r, g, b, a));
 
-			(*self.ctx)
-				.default_text
-				.set_position(sfml::system::Vector2f::new(x as _, y as _));
+		self.ctx
+			.default_text
+			.set_position(sfml::system::Vector2f::new(x as _, y as _));
 
-			(*self.ctx).window.draw((*self.ctx).default_text);
-		}
+		self.ctx.window.draw(self.ctx.default_text);
 	}
 
 	fn get_size(&mut self, text: impl AsRef<str>) -> (usize, usize) {
-		let bounds = unsafe {
-			(*self.ctx).default_text.set_string(text.as_ref());
-			(*self.ctx).default_text.local_bounds()
-		};
+		self.ctx.default_text.set_string(text.as_ref());
+		let bounds = self.ctx.default_text.local_bounds();
 
 		(
 			(bounds.left + bounds.width).round() as usize,
@@ -93,12 +86,7 @@ impl<'a, 'b, 'c> suif::RenderContext for Render<'a, 'b, 'c> {
 	}
 
 	fn default_font(&mut self) -> impl suif::Font + '_ {
-		SfmlFont {
-			ctx: self as _,
-			_phantom_a: std::marker::PhantomData,
-			_phantom_b: std::marker::PhantomData,
-			_phantom_c: std::marker::PhantomData,
-		}
+		SfmlFont { ctx: self }
 	}
 }
 
