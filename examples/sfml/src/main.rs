@@ -1,8 +1,8 @@
 #![allow(incomplete_features)]
 #![feature(fn_traits, return_position_impl_trait_in_trait)]
 
-use suif::{Font, RenderContext};
 use sfml::graphics::RenderTarget;
+use suif::{Font, MaybeInvisibleList, RenderContext};
 
 mod contexts;
 
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let mut text = sfml::graphics::Text::new("", &font, 12);
 	window.set_vertical_sync_enabled(true);
 
-	let current_tab = std::cell::Cell::new(-1);
+	let current_tab: std::cell::Cell<i32> = std::cell::Cell::new(-1);
 
 	let widget = suif::Layer::new(
 		suif::Color::new((0, 0, 0, 255)),
@@ -42,6 +42,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						}),
 						suif::Button::new("2nd", || {
 							current_tab.set(1);
+						}),
+						suif::Button::new("3rd", || {
+							current_tab.set(2);
 						}),
 					]),
 					suif::Margin::new(
@@ -64,16 +67,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 									suif::CheckBox::new("Checkbox!")
 								],
 							)),
-							suif::MaybeInvisible::new(suif::GroupBox::new(
-								"Second",
-								suif::list![
-									suif::Text::new("idk", (255, 255, 255, 255)),
-									suif::Text::new("idk", (255, 255, 255, 255)),
-									suif::Button::new("asdf!", || {
-										println!("asdf");
-									}),
-								],
-							)),
+							suif::Layer::new(
+								suif::MaybeInvisible::new(suif::GroupBox::new(
+									"Second",
+									suif::list![
+										suif::Text::new("idk", (255, 255, 255, 255)),
+										suif::Text::new("idk", (255, 255, 255, 255)),
+										suif::Button::new("asdf!", || {
+											println!("asdf");
+										}),
+									],
+								)),
+								suif::MaybeInvisible::new(suif::GroupBox::new(
+									"Third",
+									suif::list![
+										suif::CheckBox::new("toggle!"),
+										suif::Text::new("Third tab!", (55, 55, 55, 255)),
+									],
+								)),
+							),
 						),
 					),
 				),
@@ -139,19 +151,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			.get_bottom_mut()
 			.get_widget_mut();
 
-		match current_tab.get() {
-			0 => {
-				tabs.get_first_mut().set_is_visible(true);
-				tabs.get_second_mut().set_is_visible(false);
-			}
-			1 => {
-				tabs.get_first_mut().set_is_visible(false);
-				tabs.get_second_mut().set_is_visible(true);
-			}
-			_ => {
-				tabs.get_first_mut().set_is_visible(false);
-				tabs.get_second_mut().set_is_visible(false);
-			}
+		let list = suif::list![
+			tabs.get_first(),
+			tabs.get_second().get_first(),
+			tabs.get_second().get_second()
+		];
+
+		let list_size = list.size(0);
+
+		for i in 0..list_size {
+			list.set_is_visible(i, false);
+		}
+
+		let current_tab = current_tab.get();
+
+		if current_tab >= 0 && current_tab < list_size as _ {
+			list.set_is_visible(current_tab as _, true);
 		}
 
 		uiw.update(&input_context);
